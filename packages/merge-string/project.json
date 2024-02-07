@@ -1,0 +1,21 @@
+{
+  "name": "merge-string",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/merge-string/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/merge-string",
+        "main": "packages/merge-string/src/index.ts",
+        "tsConfig": "packages/merge-string/tsconfig.lib.json",
+        "assets": ["packages/merge-string/*.md"],
+        "generatePackageJson": true,
+        "format": ["cjs"]
+      }
+    }
+  },
+  "tags": []
+}

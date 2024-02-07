@@ -1,0 +1,21 @@
+{
+  "name": "mls-ingest",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/mls-ingest/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/mls-ingest",
+        "main": "packages/mls-ingest/src/index.ts",
+        "tsConfig": "packages/mls-ingest/tsconfig.lib.json",
+        "assets": ["packages/mls-ingest/*.md"],
+        "generatePackageJson": true,
+        "format": ["cjs"]
+      }
+    }
+  },
+  "tags": []
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@kck/merge-string",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/lib/index.js",
+  "devDependencies": {
+    "@types/node": "^20.11.16"
+  }
+}
