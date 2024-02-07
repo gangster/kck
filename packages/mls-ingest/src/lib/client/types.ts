@@ -1,3 +1,5 @@
+import { CRMPropertyPayload } from '@lib/vendors/default/schema';
+
 /**
  * Defines the configuration parameters for retrying operations.
  * This interface allows for specifying how retry logic should be applied to operations,
@@ -9,6 +11,22 @@ export type RetryConfig = {
   maxRetries: number; // The maximum number of retry attempts before giving up.
   multiplier: number; // The factor by which the delay increases after each failed attempt.
   retryableStatusCodes: number[]; // HTTP status codes that are considered eligible for a retry.
+};
+
+/**
+ * Represents the options for creating a property in the CRM system.
+ * Allows the specification of customer ID, property data, and optional retry configuration
+ * for handling transient network errors or other issues that might benefit from retry logic.
+ *
+ * @property {number} customerId - The unique identifier for the customer associated with the property.
+ * @property {CRMPropertyPayload} input - The property data to be sent to the CRM system, conforming to the defined schema.
+ * @property {RetryConfig} [retryConfig] - Optional configuration for retry behavior, allowing for customization
+ *                                          of retry logic in case of transient errors or failures during the property creation process.
+ */
+export type CreatePropertyOptions = {
+  customerId: number;
+  input: CRMPropertyPayload;
+  retryConfig?: RetryConfig;
 };
 
 /**

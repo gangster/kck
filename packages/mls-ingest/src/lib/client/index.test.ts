@@ -1,7 +1,8 @@
 import nock from 'nock';
-import { createProperty, BASE_URL, ENDPOINT } from '.';
-import { HttpRequestError, MaxRetriesExceededError } from './errors';
+import { createProperty, BASE_URL, endpoint } from '.';
+import { HttpRequestError, InvalidCustomerError, MaxRetriesExceededError } from './errors';
 
+const customerId = 762910;
 const input = {
   mls_name: 'Example MLS',
   mls_id: 123456,
@@ -26,7 +27,7 @@ const retryConfig = {
   retryableStatusCodes: [500, 502, 503, 504], // Retry only for server errors
 };
 
-describe('Create Property', () => {
+describe('Create Property Functionality', () => {
   beforeEach(() => {
     nock.cleanAll();
   });
@@ -36,21 +37,21 @@ describe('Create Property', () => {
     nock.enableNetConnect();
   });
 
-  describe('When Successful', () => {
-    it('returns the property data and verifies no retries on success', async () => {
-      nock(BASE_URL).post(ENDPOINT).reply(201, output);
+  describe('Successful Property Creation', () => {
+    it('successfully returns the property data with no retries required', async () => {
+      nock(BASE_URL).post(endpoint(customerId)).reply(201, output);
 
-      const response = await createProperty(input);
+      const response = await createProperty({ customerId, input });
       expect(response).toStrictEqual(output);
     });
   });
 
-  describe('When Unsuccessful', () => {
-    it('does not retry on non-retryable status codes (422) and asserts values in HttpRequestError', async () => {
-      nock(BASE_URL).post(ENDPOINT).reply(422, { error: 'Unprocessable Entity' });
+  describe('Unsuccessful Property Creation', () => {
+    it('does not retry on non-retryable status codes (422) and captures detailed HttpRequestError information', async () => {
+      nock(BASE_URL).post(endpoint(customerId)).reply(422, { error: 'Unprocessable Entity' });
 
       try {
-        await createProperty(input, retryConfig);
+        await createProperty({ customerId, input, retryConfig });
         fail('Expected createProperty to throw HttpRequestError, but it did not.');
       } catch (e) {
         const error = e as HttpRequestError;
@@ -60,12 +61,13 @@ describe('Create Property', () => {
         expect(error.response?.data.error).toEqual('Unprocessable Entity');
       }
     });
-    it('retries on retryable status codes (500) and throws MaxRetriesExceededError error after all retries, asserting the count value', async () => {
-      nock(BASE_URL).persist().post(ENDPOINT).reply(500, { error: 'Internal Server Error' });
+
+    it('retries on retryable status codes (500) and ultimately throws MaxRetriesExceededError after exceeding retry attempts', async () => {
+      nock(BASE_URL).persist().post(endpoint(customerId)).reply(500, { error: 'Internal Server Error' });
 
       try {
-        await createProperty(input, retryConfig);
-        fail('Expected createProperty to throw MaxRetriesExceededError error, but it did not.');
+        await createProperty({ customerId, input, retryConfig });
+        fail('Expected createProperty to throw MaxRetriesExceededError, but it did not.');
       } catch (e) {
         const error = e as MaxRetriesExceededError;
         expect(error).toBeInstanceOf(MaxRetriesExceededError);
@@ -74,6 +76,20 @@ describe('Create Property', () => {
         expect(error.lastError).toBeInstanceOf(HttpRequestError);
         expect(error.lastError?.response?.status).toEqual(500);
       }
+    });
+    describe('Invalid Customer ID Handling', () => {
+      it('throws InvalidCustomerError for invalid customer IDs', async () => {
+        // No need to mock an endpoint call as the error should be thrown before any HTTP request is made
+        try {
+          await createProperty({ customerId: 0, input, retryConfig });
+          fail('Expected createProperty to throw InvalidCustomerError, but it did not.');
+        } catch (e) {
+          const error = e as InvalidCustomerError;
+
+          expect(error).toBeInstanceOf(InvalidCustomerError);
+          expect(error.message).toContain(`Invalid customer ID provided: 0`);
+        }
+      });
     });
   });
 });

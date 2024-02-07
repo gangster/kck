@@ -1,4 +1,4 @@
-import { HttpRequestError, MaxRetriesExceededError } from './errors';
+import { HttpRequestError, InvalidCustomerError, MaxRetriesExceededError } from './errors';
 describe('HttpRequestError', () => {
   it('should correctly instantiate with a message and original error', () => {
     const simulatedAxiosError = createMockAxiosError('Unprocessable Entity', 'ETIMEDOUT', 422, {
@@ -42,3 +42,15 @@ function createMockAxiosError(message: string, code: string, status: number, dat
     toJSON: () => ({ message, code }),
   };
 }
+
+describe('InvalidCustomerError', () => {
+  it('should correctly instantiate with a custom message', () => {
+    const invalidCustomerMessage = 'Invalid customer data provided';
+    const invalidCustomerError = new InvalidCustomerError(invalidCustomerMessage);
+    invalidCustomerError.id = 123;
+
+    expect(invalidCustomerError.message).toContain(invalidCustomerMessage);
+    expect(invalidCustomerError.name).toContain('InvalidCustomerError');
+    expect(invalidCustomerError.id).toBe(123);
+  });
+});

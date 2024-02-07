@@ -6,7 +6,7 @@ import { LoadVendorConfigError } from '@lib/vendors/errors';
 
 import { InputSchemaValidationError, OutputSchemaValidationError } from '@lib/transformer/errors';
 import { HttpRequestError, MaxRetriesExceededError } from '@lib/client/errors';
-import { CreateOptions } from './types';
+import { CreatePropertyOptions } from './types';
 
 /**
  * Asynchronously creates a property in the CRM system using vendor-specific configurations.
@@ -15,7 +15,7 @@ import { CreateOptions } from './types';
  * to create the property. It handles various types of errors that might occur during this process,
  * optionally invoking a custom error handler if provided.
  *
- * @param {CreateOptions} options - The options for creating a property, including the input data,
+ * @param {CreatePropertyOptions} options - The options for creating a property, including the customer id, input data,
  *                                  the vendor identifier, an optional error handler, and a retry configuration.
  * @returns {Promise<CreatePropertyResponse | null>} A promise that resolves to the response from the CRM system
  *                                                   if the property is created successfully, or null if an error occurs.
@@ -23,15 +23,20 @@ import { CreateOptions } from './types';
  *        schema validation errors, or HTTP request errors, unless an error handler is provided.
  */
 export const create = async ({
+  customerId,
   input,
   vendor = 'default', // Default to 'default' vendor if none is specified.
   errorHandler,
   retryConfig,
-}: CreateOptions): Promise<CreatePropertyResponse | null> => {
+}: CreatePropertyOptions): Promise<CreatePropertyResponse | null> => {
   try {
     // Load the vendor configuration, transform the input according to the configuration,
     // and attempt to create the property in the CRM system.
-    return await createProperty(transform(await loadVendorConfig(vendor))(input), retryConfig);
+    return await createProperty({
+      customerId,
+      input: transform(await loadVendorConfig(vendor))(input),
+      retryConfig,
+    });
   } catch (e) {
     const error = e as
       | LoadVendorConfigError

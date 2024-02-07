@@ -1,6 +1,6 @@
 import nock from 'nock';
 import { create } from '.';
-import { BASE_URL, ENDPOINT } from '@lib/client';
+import { BASE_URL, endpoint } from '@lib/client';
 import pino from 'pino';
 import { HttpRequestError, MaxRetriesExceededError } from '@lib/client/errors';
 
@@ -39,8 +39,8 @@ describe('Create Property', () => {
 
   describe('When successful', () => {
     it('should return the property data on successful creation', async () => {
-      nock(BASE_URL).post(ENDPOINT).reply(201, output);
-      const response = await create({ input });
+      nock(BASE_URL).post(endpoint(1)).reply(201, output);
+      const response = await create({ customerId: 1, input });
       expect(response).toStrictEqual(output);
     });
   });
@@ -49,7 +49,7 @@ describe('Create Property', () => {
     describe('Vendor Configuration Errors', () => {
       it('should throw an error indicating a problem with vendor configuration', async () => {
         try {
-          await create({ input, vendor: 'invalid_vendor' });
+          await create({ customerId: 1, input, vendor: 'invalid_vendor' });
           fail('Expected to throw an error but did not.');
         } catch (e) {
           const error = e as Error;
@@ -61,7 +61,7 @@ describe('Create Property', () => {
     describe('Input Validation Errors', () => {
       it('should indicate an error with input validation', async () => {
         try {
-          await create({ input: { ...input, list_price: 'four million' } });
+          await create({ customerId: 1, input: { ...input, list_price: 'four million' } });
           fail('Expected to throw an error but did not.');
         } catch (e) {
           const error = e as Error;
@@ -80,12 +80,12 @@ describe('Create Property', () => {
 
       describe('when retryable', () => {
         beforeEach(() => {
-          nock(BASE_URL).persist().post(ENDPOINT).reply(500, 'Internal Server Error');
+          nock(BASE_URL).persist().post(endpoint(1)).reply(500, 'Internal Server Error');
         });
 
         it('should throw MaxRetriesExceededError', async () => {
           try {
-            await create({ input, vendor: 'default', retryConfig });
+            await create({ customerId: 1, input, vendor: 'default', retryConfig });
             fail('Expected to throw an error but did not.');
           } catch (e) {
             const error = e as Error;
@@ -93,12 +93,13 @@ describe('Create Property', () => {
           }
         });
         it('should invoke the provided error handler with detailed error information on retryable failures', async () => {
-          nock(BASE_URL).persist().post(ENDPOINT).reply(500, 'Internal Server Error');
+          nock(BASE_URL).persist().post(endpoint(1)).reply(500, 'Internal Server Error');
           const errorHandler = jest.fn();
           errorHandler.mockImplementation((error: HttpRequestError | MaxRetriesExceededError) => {
             logger.error(error.message);
           });
           await create({
+            customerId: 1,
             input,
             vendor: 'default',
             retryConfig: {
@@ -123,12 +124,12 @@ describe('Create Property', () => {
 
       describe('when not retryable', () => {
         beforeEach(() => {
-          nock(BASE_URL).persist().post(ENDPOINT).reply(422, 'Unprocessable Entity');
+          nock(BASE_URL).persist().post(endpoint(1)).reply(422, 'Unprocessable Entity');
         });
 
         it('should throw HttpRequestError', async () => {
           try {
-            await create({ input, vendor: 'default', retryConfig });
+            await create({ customerId: 1, input, vendor: 'default', retryConfig });
             fail('Expected to throw an error but did not.');
           } catch (e) {
             const error = e as Error;
@@ -137,9 +138,9 @@ describe('Create Property', () => {
         });
 
         it('should invoke the provided error handler with detailed error information on non-retryable failures', async () => {
-          nock(BASE_URL).persist().post(ENDPOINT).reply(422, 'Unprocessable Entity');
+          nock(BASE_URL).persist().post(endpoint(1)).reply(422, 'Unprocessable Entity');
           const errorHandler = jest.fn();
-          await create({ input, vendor: 'default', errorHandler });
+          await create({ customerId: 1, input, vendor: 'default', errorHandler });
 
           expect(errorHandler).toHaveBeenCalled();
           const errorHandlerCallArg = errorHandler.mock.calls[0][0];

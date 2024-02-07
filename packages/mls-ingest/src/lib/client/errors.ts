@@ -57,3 +57,18 @@ export class MaxRetriesExceededError extends Error {
     }
   }
 }
+
+/**
+ * Custom error class indicating that the customer data is invalid.
+ *
+ */
+export class InvalidCustomerError extends Error {
+  id: number | null | undefined;
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCustomerError:  ';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, InvalidCustomerError);
+    }
+  }
+}

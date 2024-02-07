@@ -1,51 +1,54 @@
 import axios, { AxiosError } from 'axios';
-import { CRMPropertyPayload } from '../vendors/default/schema';
 import { retry } from './retry';
-import type { CreatePropertyResponse, RetryConfig } from './types';
-import { HttpRequestError } from './errors';
+import type { CreatePropertyOptions, CreatePropertyResponse, RetryConfig } from './types';
+import { HttpRequestError, InvalidCustomerError } from './errors';
 
 /**
  * Default configuration for retrying HTTP requests on transient errors.
- * This configuration helps in making resilient HTTP calls by retrying failed requests
- * that result from temporary network issues or server errors.
+ * This configuration aims to enhance the resilience of HTTP calls by automatically retrying failed requests
+ * due to temporary network issues or server errors, ensuring reliable data transmission to the CRM system.
  */
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   initialDelay: 1000, // Initial delay in milliseconds before the first retry attempt.
-  maxRetries: 5, // Maximum number of retry attempts.
-  multiplier: 2, // Factor by which the retry delay increases after each attempt.
-  retryableStatusCodes: [500, 502, 503, 504], // HTTP status codes that trigger a retry.
+  maxRetries: 5, // Maximum number of retry attempts to ensure request success.
+  multiplier: 2, // Factor by which the retry delay increases after each attempt, to gradually back off.
+  retryableStatusCodes: [500, 502, 503, 504], // HTTP status codes that indicate a request should be retried.
 };
 
-// Constants defining the base URL and specific endpoint for creating a property in the CRM system.
-export const BASE_URL = 'https://knock-crm.io';
-
-// This string would be dynamically generated in a real-world scenario.
-export const ENDPOINT = '/customer/762910/properties';
+// Constants for the CRM system's base URL and the dynamic endpoint for property creation.
+export const BASE_URL = 'https://kck-crm.io';
 
 /**
- * Creates a property in the CRM system using provided property data.
- * This function abstracts the complexities of making an HTTP POST request to the CRM endpoint,
- * including error handling and retry logic for transient failures.
+ * Creates a property in the CRM system for a specified customer using provided data.
+ * Encapsulates the HTTP POST request complexities to the CRM endpoint, including error handling and retry logic.
  *
- * @param data - The property data to be sent to the CRM system, conforming to `CRMPropertyPayload`.
- * @param retryConfig - Optional custom configuration for retry behavior, defaults to `DEFAULT_RETRY_CONFIG`.
- * @returns A promise that resolves to the response from the CRM system, detailed by `CreatePropertyResponse`.
- * @throws {HttpRequestError} - Wraps Axios errors for uniform error handling.
+ * @param options - Parameters for creating a property, wrapped in an object.
+ * @returns A promise resolving to the CRM system's response, detailed by `CreatePropertyResponse`.
+ * @throws {HttpRequestError} - For uniform handling of Axios errors.
  */
-export async function createProperty(
-  data: CRMPropertyPayload,
-  retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG,
-): Promise<CreatePropertyResponse> {
-  // An async function that encapsulates the HTTP POST request logic.
+export async function createProperty({
+  customerId,
+  input,
+  retryConfig = DEFAULT_RETRY_CONFIG,
+}: CreatePropertyOptions): Promise<CreatePropertyResponse> {
+  if (!customerId) {
+    throw new InvalidCustomerError(`Invalid customer ID provided: ${customerId}`);
+  }
+  // Function encapsulating the HTTP POST request logic.
   const post = async () => {
     try {
-      const response = await axios.post(`${BASE_URL}${ENDPOINT}`, data);
-      return response.data;
+      const url = BASE_URL + endpoint(customerId);
+      const response = await axios.post(url, input);
+      return response.data; // Returns the CRM system's response.
     } catch (e) {
-      throw new HttpRequestError(e as AxiosError);
+      throw new HttpRequestError(e as AxiosError); // Standardizes Axios errors.
     }
   };
 
-  // Execute the request with retry logic.
+  // Executes the request with retry logic.
   return await retry(post, retryConfig);
+}
+
+export function endpoint(customerId: number) {
+  return `/customers/${customerId}/properties`;
 }
